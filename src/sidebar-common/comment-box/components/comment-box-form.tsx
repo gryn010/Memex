@@ -27,7 +27,7 @@ interface State {
 
 class CommentBoxForm extends React.Component<Props, State> {
     /** Ref of the text area element to listen for `scroll` events. */
-    private _textAreaRef: HTMLElement
+    private _textAreaRef: HTMLTextAreaElement
     /** Ref of the tag button element to focus on it when tabbing. */
     private tagBtnRef: HTMLElement
 
@@ -41,8 +41,7 @@ class CommentBoxForm extends React.Component<Props, State> {
         // Auto resize text area.
         if (this._textAreaRef) {
             this._textAreaRef.focus()
-
-            this._textAreaRef.addEventListener('scroll', (e: UIEvent) => {
+                this._textAreaRef.addEventListener('scroll', (e: UIEvent) => {
                 const targetElement = e.target as HTMLElement
 
                 let { rows } = this.state
@@ -57,9 +56,10 @@ class CommentBoxForm extends React.Component<Props, State> {
                 this._textAreaRef.focus()
             })
         }
+        this._textAreaRef.focus()
     }
 
-    private _setTextAreaRef = (ref: HTMLElement) => {
+    private _setTextAreaRef = (ref: HTMLTextAreaElement) => {
         this._textAreaRef = ref
     }
 
@@ -93,19 +93,19 @@ class CommentBoxForm extends React.Component<Props, State> {
     }
 
     private handleTagBtnClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-        if (this.props.commentText.length > 0) {
-            this.setState(prevState => ({
-                showTagsPicker: !prevState.showTagsPicker,
-            }))
-        }
+        e.preventDefault()
+        e.stopPropagation()
+        this.setState(prevState => ({
+            showTagsPicker: !prevState.showTagsPicker,
+        }))
     }
 
     private handleBookmarkBtnClick = (
         e: React.MouseEvent<HTMLButtonElement>,
     ) => {
-        if (this.props.commentText.length > 0) {
+            e.preventDefault()
+            e.stopPropagation()
             this.props.toggleBookmark(e)
-        }
     }
 
     private _handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -142,8 +142,20 @@ class CommentBoxForm extends React.Component<Props, State> {
         this.setState({ isTagInputActive })
     }
 
+    renderTagsTooltip() {
+        if (!this.state.showTagsPicker) {
+            return null
+        }
+
+        return (
+            <Tooltip position="bottomLeft">
+                <TagsContainer env={this.props.env} />
+            </Tooltip>
+        )
+    }
+
     render() {
-        const { env, commentText, cancelComment } = this.props
+        const { commentText, cancelComment } = this.props
         const { rows } = this.state
 
         return (
@@ -154,7 +166,10 @@ class CommentBoxForm extends React.Component<Props, State> {
                     className={styles.textArea}
                     value={commentText}
                     placeholder="Add your comment... (save with cmd/ctrl+enter)"
-                    onClick={() => this.setTagInputActive(false)}
+                    onClick={() => {
+                      this.setTagInputActive(false)
+                      this.setState(state => ({ showTagsPicker: false }))
+                    }}
                     onChange={this._handleChange}
                     onKeyDown={this._handleTextAreaKeyDown}
                     ref={this._setTextAreaRef}
@@ -184,32 +199,26 @@ class CommentBoxForm extends React.Component<Props, State> {
                             }
                         />
                     </div>
-                    {commentText.length > 0 && (
-                        <div className={styles.confirmButtons}>
-                            <button
-                                className={styles.cancelBtn}
-                                onClick={cancelComment}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className={styles.saveBtn}
-                                onClick={e => this.saveComment(e)}
-                            >
-                                Save
-                            </button>
-                        </div>
-                    )}
+                    <div className={styles.confirmButtons}>
+                        <button
+                            className={styles.cancelBtn}
+                            onClick={cancelComment}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className={styles.saveBtn}
+                            onClick={e => this.saveComment(e)}
+                        >
+                            Save
+                        </button>
+                    </div>
                 </div>
                 <span
                     className={styles.tagDropdown}
                     onKeyDown={this.handleTagBtnKeyDown}
                 >
-                    {this.state.showTagsPicker && (
-                        <Tooltip position="bottomLeft">
-                            <TagsContainer env={env} />
-                        </Tooltip>
-                    )}
+                    {this.renderTagsTooltip()}
                 </span>
             </React.Fragment>
         )
